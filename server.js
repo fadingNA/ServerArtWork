@@ -7,7 +7,6 @@ const userService = require("./user-service.js");
 const passport = require("passport");
 const passportJWT = require("passport-jwt")
 const jwt = require('jsonwebtoken');
-const {flatten} = require("express/lib/utils");
 const HTTP_PORT = process.env.PORT || 8080;
 
 app.use(express.json());
@@ -18,33 +17,44 @@ let ExtractJwt = passportJWT.ExtractJwt;
 let JwtStrategy = passportJWT.Strategy;
 // COnfigure its options
 let jwtOptions = {};
-jwtOptions.jwtFromRequest = ExtractJwt.fromAuthHeaderWithScheme('jwt');
+jwtOptions.jwtFromRequest = ExtractJwt.fromAuthHeaderAsBearerToken('jwt');
 jwtOptions.secretOrKey = process.env.JWT_SECRET
 
-var str = new JwtStrategy(jwtOptions, function (jwt_payload, next) {
+let token = jwt.sign({
+    userName: 'bob'
+}, 'secret', {
+    expiresIn: 60 * 60
+});
+// tell passport to use our "strategy"
+let strategy = new JwtStrategy(jwtOptions, function(jwt_payload,next){
     console.log('payload received', jwt_payload);
-
-    if (jwt_payload) {
-        // The following will ensure that all routes using
-        // passport.authenticate have a req.user._id, req.user.userName, req.user.fullName & req.user.role values
-        // that matches the request payload data
-        next(null, {
+    if (jwt_payload){
+        next(null,{
             _id: jwt_payload._id,
             userName: jwt_payload.userName,
-        });
-    } else {
-        next(null, false);
+            password: jwt_payload.password,
+        })
+    }else{
+        next(null,false)
     }
-});
-
-// tell passport to use our "strategy"
-passport.use(str);
+})
 
 // add passport as application-level middleware
 app.use(passport.initialize());
+passport.use(new JwtStrategy(jwtOptions, (jwt_payload, done) => {
+    User.findOne({ _id: jwt_payload._id }, (err, user) => {
+        if (err) {
+            return done(err, false);
+        }
+        if (user) {
+            return done(null, user);
+        } else {
+            return done(null, false);
+        }
+    });
+}));
 
-
-// setup a 'route' to listen on the default url path
+// set up a 'route' to listen on the default url path
 app.get("/", (req, res) => {
     res.send("Test Assignment 6 Nonthachai Plodthong");
 });
@@ -54,28 +64,33 @@ app.get("/", (req, res) => {
 // setup http server to listen on HTTP_PORT
 
 
-app.post("/api/user/register", passport.authenticate('jwt', {session: false}), (req, res) => {
+app.post("/api/user/register", (req, res) => {
     userService.registerUser(req.body)
         .then((msg) => {
             res.json({"message": msg});
         }).catch((msg) => {
-        res.status(422).json({"message": msg});
+        res.status(422).json({"message": msg + " test"});
     });
 });
 
-app.post("/api/user/login", passport.authenticate('jwt', {session: false}), (req, res) => {
+app.post("/api/user/login", (req, res) => {
     userService.checkUser(req.body)
-        .then((user) => {
-            var payload = {
+        .then(user => {
+            const payload = {
                 _id: user._id,
-                userName: user.userName,
+                userName: user.userName
             };
-            var token = jwt.sign(payload, jwtOptions.secretOrKey);
-            res.json({message: 'login done', token: token});
-        }).catch(msg => {
-        res.status(422).json({"message": msg});
-    });
+            const token = jwt.sign(payload, process.env.JWT_SECRET);
+            res.json({
+                message: 'Login successful',
+                token: token
+            });
+        })
+        .catch(error => {
+            res.status(401).json({ error: 'Invalid credentials' });
+        });
 });
+
 
 app.get("/api/user/favourites", passport.authenticate('jwt', {session: false}), (req, res) => {
     userService.getFavourites(req.user._id)

@@ -1,3 +1,16 @@
-POST http://localhost:8080/api/user/
+POST http://localhost:8080/api/user/login
+Content-type: application/json
+
+
+
+###
 
 GET http://localhost:8080/api/user/favourites
+Accept: application/json
+
+###
+POST http://localhost:8080/api/user/
+
+###
+GET http://localhost:8080/api/user/favourites
+
