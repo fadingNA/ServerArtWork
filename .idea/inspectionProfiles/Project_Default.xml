@@ -8,6 +8,7 @@
           <option value="&quot;password&quot;" />
           <option value="&quot;username&quot;" />
           <option value="}" />
+          <option value="&quot;userName&quot;" />
         </set>
       </option>
     </inspection_tool>

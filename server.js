@@ -17,7 +17,7 @@ let ExtractJwt = passportJWT.ExtractJwt;
 let JwtStrategy = passportJWT.Strategy;
 // COnfigure its options
 let jwtOptions = {};
-jwtOptions.jwtFromRequest = ExtractJwt.fromAuthHeaderAsBearerToken('jwt');
+jwtOptions.jwtFromRequest = ExtractJwt.fromAuthHeaderWithScheme('jwt');
 jwtOptions.secretOrKey = process.env.JWT_SECRET
 
 let token = jwt.sign({
@@ -41,7 +41,7 @@ let strategy = new JwtStrategy(jwtOptions, function(jwt_payload,next){
 
 // add passport as application-level middleware
 app.use(passport.initialize());
-passport.use(new JwtStrategy(jwtOptions, (jwt_payload, done) => {
+/*passport.use(new JwtStrategy(jwtOptions, (jwt_payload, done) => {
     User.findOne({ _id: jwt_payload._id }, (err, user) => {
         if (err) {
             return done(err, false);
@@ -53,7 +53,8 @@ passport.use(new JwtStrategy(jwtOptions, (jwt_payload, done) => {
         }
     });
 }));
-
+*/
+passport.use(strategy);
 // set up a 'route' to listen on the default url path
 app.get("/", (req, res) => {
     res.send("Test Assignment 6 Nonthachai Plodthong");
